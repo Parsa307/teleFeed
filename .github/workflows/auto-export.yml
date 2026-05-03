@@ -75,8 +75,9 @@ jobs:
     # --- PART 1: Save Bot Memory to Main ---
     - name: Commit State (if any) to Main
       run: |
-        # Only commit non-export changes to main
-        git add . ':!export/'
+        # Only commit non-export changes to main (explicitly exclude export folder)
+        git add -A
+        git reset HEAD export/
         if ! git diff --cached --quiet; then
           git commit -m "Update bot state [skip ci]"
           git push origin main
@@ -87,9 +88,11 @@ jobs:
     # --- PART 2: Publish Exports to Export Branch ---
     - name: Publish Channel Exports to Export Branch
       run: |
-        # Prepare exports for export branch
-        mkdir -p /tmp/channel_exports
-        cp -r export/* /tmp/channel_exports/ 2>/dev/null || true
+        # Save exports to temporary location before switching branches
+        mkdir -p /tmp/exports
+        if [ -d "export" ]; then
+          cp -r export/* /tmp/exports/ 2>/dev/null || true
+        fi
 
         # Checkout or create export branch
         if git show-ref --verify --quiet refs/remotes/origin/export; then
@@ -106,8 +109,8 @@ jobs:
           git commit -m "Initialize export branch"
         fi
 
-        # Copy exports to export branch
-        mv /tmp/channel_exports/* . 2>/dev/null || true
+        # Copy exports from temporary location to export branch
+        cp -r /tmp/exports/* . 2>/dev/null || true
         
         # Add all export files
         git add .
