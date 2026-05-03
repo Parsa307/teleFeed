@@ -91,7 +91,7 @@ jobs:
         # Save exports to temporary location before switching branches
         mkdir -p /tmp/exports
         if [ -d "export" ]; then
-          cp -r export/* /tmp/exports/ 2>/dev/null || true
+          cp -r export/*.json /tmp/exports/ 2>/dev/null || true
         fi
 
         # Checkout or create export branch
@@ -109,8 +109,8 @@ jobs:
           git commit -m "Initialize export branch"
         fi
 
-        # Copy exports from temporary location to export branch
-        cp -r /tmp/exports/* . 2>/dev/null || true
+        # Copy exports from temporary location to export branch (only JSON files)
+        cp -r /tmp/exports/*.json . 2>/dev/null || true
         
         # Add all export files
         git add .
