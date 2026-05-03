@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  telefeed:
+    build: .
+    container_name: telefeed
+    volumes:
+      - ./export:/root/export
+      - ./config.json:/root/config.json
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+    
+  # Optional: Run on schedule with cron
+  telefeed-scheduled:
+    build: .
+    container_name: telefeed-scheduled
+    volumes:
+      - ./export:/root/export
+      - ./config.json:/root/config.json
+    environment:
+      - TZ=UTC
+    command: sh -c "while true; do echo 'Running Telegram export at $$(date)'; ./telefeed; echo 'Next run in 30 minutes...'; sleep 1800; done"
+    restart: unless-stopped
+    profiles:
+      - scheduled
