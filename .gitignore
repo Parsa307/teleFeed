@@ -22,7 +22,7 @@ telefeed.exe
 go.work
 
 # Export folder - contains large JSON files that should be in export branch
-# export/
+export/
 
 # IDE files
 .vscode/
