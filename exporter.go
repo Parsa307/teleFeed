@@ -10,12 +10,6 @@ import (
 )
 
 func exportChannelData(channelData *ChannelData) error {
-	// Create export directory if it doesn't exist
-	exportDir := "export"
-	if err := os.MkdirAll(exportDir, 0755); err != nil {
-		return fmt.Errorf("failed to create export directory: %v", err)
-	}
-
 	// Generate filename (lowercase channel name)
 	filename := strings.ToLower(channelData.Info.Username)
 	if filename == "" {
@@ -26,7 +20,8 @@ func exportChannelData(channelData *ChannelData) error {
 	filename = regexp.MustCompile(`[^a-zA-Z0-9_-]`).ReplaceAllString(filename, "_")
 	filename = filename + ".json"
 
-	filePath := filepath.Join(exportDir, filename)
+	// Export directly to root directory (no export folder)
+	filePath := filename
 
 	// Convert to export format (handles empty caption properly)
 	exportData := toExportChannelData(*channelData)
@@ -35,6 +30,12 @@ func exportChannelData(channelData *ChannelData) error {
 	jsonData, err := json.MarshalIndent(exportData, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %v", err)
+	}
+
+	// Check if file already exists to prevent duplicates
+	if _, err := os.Stat(filePath); err == nil {
+		fmt.Printf("File %s already exists, skipping export for channel '%s'\n", filePath, channelData.Info.Title)
+		return nil
 	}
 
 	// Write to file
