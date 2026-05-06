@@ -272,10 +272,6 @@ func parseSinglePost(postHTML string) Post {
 	return post
 }
 
-func extractJSONFromHTML(html string) string {
-	// This function is no longer used but kept for compatibility
-	return ""
-}
 
 func extractHashtags(text string) []string {
 	re := regexp.MustCompile(`#\w+`)

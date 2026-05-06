@@ -53,12 +53,13 @@ func fetchChannelDataWithColly(username string) (*ChannelData, error) {
 		channelData.Info.Photo = e.Attr("content")
 	})
 
-	// Extract posts
-	c.OnHTML(`.tgme_widget_message_wrap`, func(e *colly.HTMLElement) {
+	// Extract posts - target the div with data-post attribute
+	c.OnHTML(`.tgme_widget_message_wrap > div[data-post]`, func(e *colly.HTMLElement) {
 		post := Post{}
 		
 		// Extract post ID
-		if postIDStr := e.Attr("data-post"); postIDStr != "" {
+		postIDStr := e.Attr("data-post")
+		if postIDStr != "" {
 			parts := strings.Split(postIDStr, "/")
 			if len(parts) > 1 {
 				fmt.Sscanf(parts[1], "%d", &post.ID)
@@ -207,6 +208,9 @@ func fetchChannelDataWithColly(username string) (*ChannelData, error) {
 	}
 
 	c.Wait()
+
+	// Just use the posts we found
+	fmt.Printf("  - Posts found: %d\n", len(channelData.Posts))
 
 	channelData.LastUpdated = time.Now().Unix()
 	return channelData, nil
