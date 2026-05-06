@@ -109,7 +109,8 @@ jobs:
           git commit -m "Initialize export branch"
         fi
 
-        # Copy exports from temporary location to export branch (only JSON files)
+        # Clean up any existing export folder and copy exports to root (only JSON files)
+        rm -rf export/ 2>/dev/null || true
         cp -r /tmp/exports/*.json . 2>/dev/null || true
         
         # Add all export files
