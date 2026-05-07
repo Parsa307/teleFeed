@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func exportChannelData(channelData *ChannelData) error {
+func exportChannelData(channelData *ChannelData, suffix string) error {
 	// Create export directory if it doesn't exist
 	exportDir := "export"
 	if err := os.MkdirAll(exportDir, 0755); err != nil {
@@ -24,6 +24,11 @@ func exportChannelData(channelData *ChannelData) error {
 	
 	// Clean filename (remove special characters)
 	filename = regexp.MustCompile(`[^a-zA-Z0-9_-]`).ReplaceAllString(filename, "_")
+	
+	// Add suffix if provided
+	if suffix != "" {
+		filename = filename + "_" + suffix
+	}
 	filename = filename + ".json"
 
 	filePath := filepath.Join(exportDir, filename)

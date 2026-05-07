@@ -36,12 +36,6 @@ func main() {
 		fmt.Printf("  - Channel: %s (@%s)\n", channelData.Info.Title, channelData.Info.Username)
 		fmt.Printf("  - Posts found: %d\n", len(channelData.Posts))
 
-		// Export to JSON
-		if err := exportChannelData(channelData); err != nil {
-			log.Printf("Error exporting channel %s: %v", channel, err)
-			continue
-		}
-
 		// Add delay to avoid rate limiting
 		if i < len(config.Channels)-1 {
 			fmt.Println("  - Waiting 5 seconds before next channel...")

@@ -1,13 +1,52 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
+	"io"
 	"math/rand"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gocolly/colly/v2"
 )
+
+// downloadAndConvertToBase64 downloads an image from URL and converts it to base64
+func downloadAndConvertToBase64(imageURL string) (string, error) {
+	if imageURL == "" {
+		return "", nil
+	}
+
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Get(imageURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to download image: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("HTTP error: %d", resp.StatusCode)
+	}
+
+	imageData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read image data: %v", err)
+	}
+
+	// Get content type for data URI prefix
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "image/jpeg" // default
+	}
+
+	// Convert to base64 with data URI prefix
+	base64String := base64.StdEncoding.EncodeToString(imageData)
+	return fmt.Sprintf("data:%s;base64,%s", contentType, base64String), nil
+}
 
 func fetchChannelDataWithColly(username string) (*ChannelData, error) {
 	// Add random delay before request
@@ -209,6 +248,46 @@ func fetchChannelDataWithColly(username string) (*ChannelData, error) {
 
 	c.Wait()
 
+	// Export light version (without base64) first
+	fmt.Printf("  - Exporting light version (without base64)...\n")
+	if err := exportChannelData(channelData, ""); err != nil {
+		fmt.Printf("  - Warning: Failed to export light version: %v\n", err)
+	}
+
+	// Convert channel photo to base64
+	if channelData.Info.Photo != "" {
+		fmt.Printf("  - Converting channel photo to base64...\n")
+		base64Photo, err := downloadAndConvertToBase64(channelData.Info.Photo)
+		if err != nil {
+			fmt.Printf("  - Warning: Failed to convert channel photo: %v\n", err)
+		} else {
+			channelData.Info.Photo = base64Photo
+			fmt.Printf("  - Channel photo converted to base64\n")
+		}
+	}
+
+	// Convert all media URLs to base64
+	fmt.Printf("  - Converting media files to base64...\n")
+	for i := range channelData.Posts {
+		for j := range channelData.Posts[i].Media {
+			if channelData.Posts[i].Media[j].URL != "" {
+				base64Media, err := downloadAndConvertToBase64(channelData.Posts[i].Media[j].URL)
+				if err != nil {
+					fmt.Printf("  - Warning: Failed to convert media for post %d: %v\n", channelData.Posts[i].ID, err)
+				} else {
+					channelData.Posts[i].Media[j].URL = base64Media
+				}
+			}
+		}
+	}
+	fmt.Printf("  - Media conversion completed\n")
+
+	// Export base64 version
+	fmt.Printf("  - Exporting base64 version...\n")
+	if err := exportChannelData(channelData, "base64"); err != nil {
+		fmt.Printf("  - Warning: Failed to export base64 version: %v\n", err)
+	}
+
 	// Store initial posts count
 	initialPostCount := len(channelData.Posts)
 	fmt.Printf("  - Initial posts found: %d\n", initialPostCount)
@@ -327,6 +406,19 @@ func fetchChannelDataWithColly(username string) (*ChannelData, error) {
 					}
 					
 					if len(trulyOlderPosts) > 0 {
+						// Convert older posts media to base64
+						for i := range trulyOlderPosts {
+							for j := range trulyOlderPosts[i].Media {
+								if trulyOlderPosts[i].Media[j].URL != "" {
+									base64Media, err := downloadAndConvertToBase64(trulyOlderPosts[i].Media[j].URL)
+									if err != nil {
+										fmt.Printf("  - Warning: Failed to convert media for older post %d: %v\n", trulyOlderPosts[i].ID, err)
+									} else {
+										trulyOlderPosts[i].Media[j].URL = base64Media
+									}
+								}
+							}
+						}
 						// Prepend older posts before newer posts
 						channelData.Posts = append(trulyOlderPosts, channelData.Posts...)
 						fmt.Printf("  - Successfully loaded %d older posts (total: %d)\n", len(trulyOlderPosts), len(channelData.Posts))
